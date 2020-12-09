@@ -7,3 +7,6 @@ Required Conditions:
 4. Now, we can have the end points as connected.
 5. For now, let's assume only one pair of color exists.
 6. Now, we need to write condition for connected wires.
+
+Conditions for the connected Wires:
+1. Please find the conditions here: https://mzucker.github.io/2016/09/02/eating-sat-flavored-crow.html
