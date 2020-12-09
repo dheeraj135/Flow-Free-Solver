@@ -1,4 +1,9 @@
 from z3 import *
+import flask
+from flask import request, jsonify
+
+app = flask.Flask(__name__)
+app.config["DEBUG"] = True
 
 def solve(phi):
     s = Solver()
@@ -95,18 +100,23 @@ class Flow:
     def print_grid(self,model):
         if model == None:
             print("F")
-            return
+            return None
+        ans = []
         for i in range(self.n):
+            row = []
             for j in range(self.m):
                 for k in range(self.num_colors):
                     val = model[self.base_matrix[i][j][k][0]]
                     val1 = model[self.base_matrix[i][j][k][1]]
                     if is_true(val):
                         print(k+1,end=' ')
+                        row.append(k+1)
                     if is_true(val1):
+                        row.append(k+1)
                         print(str(k+1), end = ' ')
+            ans.append(row)
             print('')
-
+        return ans
 
 input_mat = [
                 [1,0,4,0,4,5,0],
@@ -140,10 +150,71 @@ input_mat9 = [
                 [0,0,0,0,0,0,0,0,0],
 
 ]
-flow = Flow(input_mat9,9)
-m = solve(flow.work())
-flow.print_grid(m)
+# flow = Flow(input_mat9,9)
+# m = solve(flow.work())
+# flow.print_grid(m)
 
+def filter(matrix):
+    n = len(matrix)
+    m = len(matrix[0])
+
+    count = {}
+
+    for i in range(n):
+        for j in range(m):
+            if(matrix[i][j]):
+                if matrix[i][j] in count:
+                    count[matrix[i][j]]+= 1
+                else:
+                    count[matrix[i][j]] = 1
+    
+    mapping = {}
+    inverse_mapping = {}
+    num_colors = 1
+
+    mapping[0] = 0
+    inverse_mapping[0] = 0
+    for i in count:
+        if count[i] != 2:
+            return -1,-1,-1
+        mapping[i] = num_colors
+        inverse_mapping[num_colors] = i
+        num_colors += 1
+
+    for i in range(n):
+        for j in range(m):
+            matrix[i][j] = mapping[matrix[i][j]]
+
+    return matrix,inverse_mapping,num_colors-1
+
+def reverse(matrix, mapping):
+    n = len(matrix)
+    m = len(matrix[0])
+
+    for i in range(n):
+        for j in range(m):
+            matrix[i][j] = mapping[matrix[i][j]]
+    return matrix
+
+@app.route('/get-solution/', methods=['POST'])
+def process():
+    data = request.json
+    matrix = data["input"]
+    print(matrix)
+    print(len(matrix))
+    input_matrix,mapping,num_colors = filter(matrix)
+    print(input_matrix)
+    print(mapping)
+    print(num_colors)
+    flow = Flow(input_matrix, num_colors)
+    m = solve(flow.work())
+    output_matrix = flow.print_grid(m)
+    if not output_matrix:
+        return jsonify ({"output": -1})
+    output_matrix = reverse(output_matrix,mapping)
+    return jsonify({"output":output_matrix})
+
+app.run()
 # for i in range(3):
 #     for j in range(i+1,3):
 #         print(i,j)
