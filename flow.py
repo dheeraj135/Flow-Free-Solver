@@ -1,9 +1,12 @@
 from z3 import *
 import flask
 from flask import request, jsonify
+from flask_cors import CORS, cross_origin
 
 app = flask.Flask(__name__)
 app.config["DEBUG"] = True
+cors = CORS(app)
+app.config['CORS_HEADERS'] = 'Content-Type'
 
 def solve(phi):
     s = Solver()
@@ -150,9 +153,13 @@ input_mat9 = [
                 [0,0,0,0,0,0,0,0,0],
 
 ]
-# flow = Flow(input_mat9,9)
-# m = solve(flow.work())
-# flow.print_grid(m)
+
+def to_2D_matrix(l,n):
+    return [l[i:i+n] for i in range(0, len(l), n)]
+
+def to_1D_matrix(l):
+    flatten_list = [j for sub in l for j in sub]
+    return flatten_list
 
 def filter(matrix):
     n = len(matrix)
@@ -197,9 +204,13 @@ def reverse(matrix, mapping):
     return matrix
 
 @app.route('/get-solution/', methods=['POST'])
+@cross_origin()
 def process():
     data = request.json
+    n = data["N"]
+    m = data["M"]
     matrix = data["input"]
+    matrix = to_2D_matrix(matrix,m)
     print(matrix)
     print(len(matrix))
     input_matrix,mapping,num_colors = filter(matrix)
@@ -212,6 +223,7 @@ def process():
     if not output_matrix:
         return jsonify ({"output": -1})
     output_matrix = reverse(output_matrix,mapping)
+    output_matrix = to_1D_matrix(output_matrix)
     return jsonify({"output":output_matrix})
 
 app.run()
